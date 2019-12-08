@@ -1,0 +1,36 @@
+﻿@inherits StateComponent
+
+<div class="card shadow md-2" style="max-width:200px">
+    <div class="card-header">
+        <h5>Order @Number.Item1 - @Number.Item2</h5>
+    </div>
+    <div class="card-body">
+        @foreach (var l in Lines)
+        {
+            <div class="row">
+                <div class="col-6">
+                    @l.z_DSC1_25
+                </div>
+                <div class="col-4 text-right">
+                    @l.z_UOPN_16
+                </div>
+                <div class="col-2">
+                    @l.z_UOM_87
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Tuple<int, string> Number { get; set; }
+
+    IEnumerable<W4312F.Row> Lines => POState
+        .OpenRequest
+        .fs_P4312_W4312F
+        .data
+        .gridData
+        .rowset
+        .Where(r => r.z_DOCO_10 == Number.Item1 && r.z_DCTO_11.CompareTo(Number.Item2) == 0);
+}

@@ -1,0 +1,28 @@
+﻿@page "/"
+@inherits StateComponent
+
+<div class="row">
+    @if (POState.OpenRequest == null)
+    {
+        <em>Log in to fetch open orders!</em>
+    }
+    else
+    {
+        foreach (var o in Orders)
+        {
+            <Order Number="@o"></Order>
+        }
+    }
+</div>
+
+@code {
+    IEnumerable<Tuple<int, string>> Orders => POState
+        .OpenRequest
+        .fs_P4312_W4312F
+        .data
+        .gridData
+        .rowset
+        .Select(r => new Tuple<int, string>(r.z_DOCO_10, r.z_DCTO_11))
+        .Distinct();
+
+}

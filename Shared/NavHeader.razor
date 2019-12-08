@@ -1,0 +1,128 @@
+﻿@inherits StateComponent
+@inject AIS.Server E1
+@inject LocalStorageService Local
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <a class="navbar-brand" href="#">PO RECEIVER</a>
+    <div class="col text-white">
+        @if (Auth)
+        {
+            @AppState.AuthResponse.username
+        }
+        else
+        {
+            <em>Logged out</em>
+        }
+    </div>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <button type="button" class="btn btn-secondary ml-1" @onclick="@ToggleLogin">
+            <i class="@(Auth ? "fas fa-sign-out-alt" : "fas fa-sign-in-alt")"></i>
+        </button>
+    </div>
+</nav>
+@if (LoginPopup)
+{
+    <DxPopup>
+        <ChildContent>
+            <div class="ml-4 mr-4">
+                <form spellcheck="false" @onsubmit="@Authenticate">
+                    <div class="row justify-content-center">
+                        <h4>Login</h4>
+                    </div>
+                    <div class="form-group-row">
+                        <label for="user">User</label>
+                        <input type="text" disabled="@Busy" id="user" required class="form-control" @bind="@User" />
+                    </div>
+                    <div class="form-group-row">
+                        <label for="password">Password</label>
+                        <input type="password" disabled="@Busy" id="password" required class="form-control" @bind="@Password" />
+                    </div>
+                    <div class="row">
+                        <label class="col text-danger">@Error</label>
+                    </div>
+                    <div class="row m-2">
+                        <div class="col">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="@(Busy ? "fas fa-spinner fa-spin" : "fas fa-sign-in-alt")"></i>
+                                @(Busy ? " Cancel" : " Login")
+                            </button>
+                        </div>
+                        <div class="col"></div>
+                        <div class="col">
+                            <button type="button" disabled="@Busy" class="btn btn-warning" @onclick="@(() => LoginPopup = false)">
+                                <i class="fa fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </ChildContent>
+    </DxPopup>
+}
+
+@code {
+    bool Busy { get; set; }
+    bool Auth => AppState.AuthResponse != null;
+    bool loginPopup = false;
+    bool LoginPopup
+    {
+        get => loginPopup;
+        set
+        {
+            Password = string.Empty;
+            Error = string.Empty;
+            loginPopup = value;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+    string User { get; set; }
+    string Password { get; set; }
+    string Error { get; set; }
+    async Task ToggleLogin()
+    {
+        if (Auth)
+        {
+            await E1.LogoutAsync();
+            await Mediator.Send(new AppState.AuthenticateAction());
+        }
+        else LoginPopup = true;
+    }
+    System.Threading.CancellationTokenSource Cancel { get; set; }
+    async Task Authenticate()
+    {
+        if (Busy)
+        {
+            Cancel.Cancel();
+        }
+        try
+        {
+            Busy = true;
+            E1.AuthRequest.username = User;
+            E1.AuthRequest.password = Password;
+            Cancel = new System.Threading.CancellationTokenSource();
+            await E1.AuthenticateAsync(Cancel);
+            await Mediator.Send(new AppState.AuthenticateAction { AuthResponse = E1.AuthResponse });
+            if (POState.OpenRequest == null)
+            {
+                await Mediator.Send(new POState.OpenRequestAction());
+                await Local.Save(StorageKeys.OPEN);
+            }
+            LoginPopup = false;
+        }
+        catch (AIS.HttpWebException e)
+        {
+            Error = e.ErrorResponse.message;
+        }
+        catch (Exception e)
+        {
+            Error = e.Message;
+        }
+        finally
+        {
+            Busy = false;
+        }
+    }
+}

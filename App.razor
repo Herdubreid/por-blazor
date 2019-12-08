@@ -1,0 +1,28 @@
+﻿@inject BlazorState.Pipeline.ReduxDevTools.ReduxDevToolsInterop ReduxDevToolsInterop
+@inject BlazorState.Features.JavaScriptInterop.JsonRequestHandler JsonRequestHandler
+@inject LocalStorageService Local
+
+<Router AppAssembly="@typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p>Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (firstRender)
+        {
+            await ReduxDevToolsInterop.InitAsync();
+            await JsonRequestHandler.InitAsync();
+            await Local.Load(StorageKeys.OPEN);
+        }
+    }
+}

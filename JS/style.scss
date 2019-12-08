@@ -1,0 +1,15 @@
+﻿@font-face {
+    font-family: 'AndaleMono';
+    src: url('./assets/AndaleMono.ttf'), url('./assets/andalemo.ttf');
+}
+
+@import './variables';
+@import '~bootstrap/scss/bootstrap';
+@import './bootswatch';
+
+@import './prism/prism';
+
+.font-mono {
+    font-family: 'AndaleMono', monospace;
+}
+
