@@ -21,7 +21,7 @@
       <HintPath>..\Celin.AIS\bin\Release\netstandard2.0\Celin.AIS.dll</HintPath>
     </Reference>
     <Reference Include="Celin.PO">
-      <HintPath>..\Celin.PO\bin\Debug\netstandard2.0\Celin.PO.dll</HintPath>
+      <HintPath>..\Celin.PO\bin\Release\netstandard2.0\Celin.PO.dll</HintPath>
     </Reference>
   </ItemGroup>
 

@@ -1,6 +1,6 @@
-﻿@inject BlazorState.Pipeline.ReduxDevTools.ReduxDevToolsInterop ReduxDevToolsInterop
+﻿@inject MediatR.IMediator Mediator
+@inject BlazorState.Pipeline.ReduxDevTools.ReduxDevToolsInterop ReduxDevToolsInterop
 @inject BlazorState.Features.JavaScriptInterop.JsonRequestHandler JsonRequestHandler
-@inject LocalStorageService Local
 
 <Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
@@ -22,7 +22,7 @@
         {
             await ReduxDevToolsInterop.InitAsync();
             await JsonRequestHandler.InitAsync();
-            await Local.Load(StorageKeys.OPEN);
+            await Mediator.Send(new AppState.LoadOpenAction());
         }
     }
 }

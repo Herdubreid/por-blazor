@@ -1,6 +1,5 @@
 ﻿@inherits StateComponent
 @inject AIS.Server E1
-@inject LocalStorageService Local
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <a class="navbar-brand" href="#">PO RECEIVER</a>
@@ -18,6 +17,7 @@
         <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <div class="col"></div>
         <button type="button" class="btn btn-secondary ml-1" @onclick="@ToggleLogin">
             <i class="@(Auth ? "fas fa-sign-out-alt" : "fas fa-sign-in-alt")"></i>
         </button>
@@ -108,7 +108,7 @@
             if (POState.OpenRequest == null)
             {
                 await Mediator.Send(new POState.OpenRequestAction());
-                await Local.Save(StorageKeys.OPEN);
+                await Mediator.Send(new AppState.SaveOpenAction { Open = POState.OpenRequest });
             }
             LoginPopup = false;
         }

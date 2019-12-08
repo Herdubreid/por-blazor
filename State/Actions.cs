@@ -8,6 +8,11 @@ namespace Celin.State
 {
     public partial class AppState
     {
+        public class LoadOpenAction : IAction { }
+        public class SaveOpenAction : IAction
+        {
+            public W4312F.Response Open { get; set; }
+        }
         public class AuthenticateAction : IAction
         {
             public AIS.AuthResponse AuthResponse { get; set; }

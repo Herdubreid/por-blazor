@@ -27,7 +27,6 @@ namespace Celin
             services.AddScoped<POState>();
             services.AddScoped<AppState>();
             services.AddSingleton<AIS.Server, E1Service>();
-            services.AddSingleton<LocalStorageService>();
         }
 
         public void Configure(IComponentsApplicationBuilder app)

@@ -1,17 +1,19 @@
 ﻿@page "/"
 @inherits StateComponent
 
-<div class="row">
+<div class="row justify-content-center">
     @if (POState.OpenRequest == null)
     {
         <em>Log in to fetch open orders!</em>
     }
     else
     {
-        foreach (var o in Orders)
-        {
-            <Order Number="@o"></Order>
-        }
+        <div class="card-columns">
+            @foreach (var o in Orders)
+            {
+                <Order Number="@o"></Order>
+            }
+        </div>
     }
 </div>
 
