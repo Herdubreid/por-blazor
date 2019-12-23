@@ -1,37 +1,221 @@
 ﻿@inherits StateComponent
+@inject JsService Js
 
-<div class="card shadow m-2" style="max-width:300px">
+<div class="card shadow m-2">
     <div class="card-header">
-        <h5>Order @Number.Item1 - @Number.Item2</h5>
+        <h5>@OrderDef.Number-@OrderDef.Company @OrderDef.Type</h5>
     </div>
-    <div class="card-body font-mono">
-        <div class="list-group">
-            @foreach (var l in Lines)
+    <div class="card-body pl-0 pr-0 pb-1">
+        @if (OrderDef.Status == null)
+        {
+            <div class="list-group font-mono">
+                @foreach (var l in Lines)
+                {
+                    <button type="button" class="list-group-item list-group-item-action" @onclick="@(() => Detail(l.z_LNID_43))">
+                        <div class="row">
+                            <div class="col-8 small">
+                                @l.z_DSC1_25
+                            </div>
+                            <div class="col-4 text-right pl-0 @(l.Adjustment == null ? "" : "text-light")">
+                                <span>@(l.Adjustment ?? l.z_UOPN_16)</span><span class="small">@l.z_UOM_87</span>
+                            </div>
+                        </div>
+                    </button>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="row justify-content-center">
+                <div class="col-auto lead">@OrderDef.Status.ToString()</div>
+            </div>
+            @if (OrderDef.Errors != null)
             {
-                <button type="button" class="list-group-item list-group-item-action">
-                    <div class="row">
-                        <div class="col-8 small">
-                            @l.z_DSC1_25
+                <div class="m-2">
+                    @foreach (var e in OrderDef.Errors)
+                    {
+                        <div class="row justify-content-center">
+                            <div class="col-auto">@e.TITLE</div>
                         </div>
-                        <div class="col-4 text-right pl-0">
-                            @l.z_UOPN_16<span class="small">@l.z_UOM_87</span>
+                        <div class="row small">
+                            <div class="col">@e.MOBILE</div>
                         </div>
-                    </div>
-                </button>
+                    }
+                </div>
             }
+        }
+        <div class="row m-2 justify-content-center">
+            <div class="col-6">
+                <button type="button" class="btn btn-@(OrderDef.Status == null ? "success" : "warning") btn-sm w-100" @onclick="(() => ConfirmPopup = true)">
+                    <i class="@(OrderDef.Status == null
+                                ? "far fa-thumbs-up"
+                                : OrderDef.Status == ProcessSteps.PENDING || OrderDef.Status == ProcessSteps.FAILED
+                                    ? "far fa-thumbs-down"
+                                    :  "fas fa-spinner fa-spin")">
+                    </i> @(OrderDef.Status != null ? "Cancel" : "Receipt")
+                </button>
+            </div>
         </div>
     </div>
 </div>
+@if (ConfirmPopup)
+{
+    <DxPopup CssClass="w-300px">
+        <HeaderTemplate>
+            <div class="row">
+                <h4 class="col-auto">@OrderDef.Number-@OrderDef.Company @OrderDef.Type</h4>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            <div class="row justify-content-center pb-4">
+                <div class="col-auto">
+                    @(OrderDef.Status != null ? "Cancel Receipt?" : LineCount == 0 ? "No Lines Selected" : $"Receipt {LineCount} Line{(LineCount == 1 ? "" : "s")}?")
+                </div>
+            </div>
+            <div class="row justify-content-between">
+                <div class="col-6">
+                    <button type="button" class="btn btn-success btn-sm w-100" hidden="@(LineCount == 0)" @onclick="@ToggleReceipt">
+                        <i class="fas fa-check"></i> Yes
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button type="button" class="btn btn-warning btn-sm w-100" @onclick="(() => ConfirmPopup = false)">
+                        <i class="fas fa-times"></i> @(LineCount > 0 ? "No" : "OK")
+                    </button>
+                </div>
+            </div>
+        </ChildContent>
+    </DxPopup>
+}
+@if (QtyPopup)
+{
+    <DxPopup CssClass="w-350px" CloseButtonClick="@(() => QtyPopup = false)" ShowCloseButton=true>
+        <HeaderTemplate>
+            <div class="row">
+                <h4 class="col-auto">Order @OrderDef.Number - @OrderDef.Type : Line @LineNumber</h4>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            <div class="font-mono mt-4 mb-4">
+                <div class="row">
+                    <div class="col">
+                        <input id="qty" type="number" style="width: 1px; visibility: hidden;" @bind-value="@ReceiptQty" />
+                    </div>
+                    <h4 id="qtyInput" style="width: 200px;" class="col-auto"></h4>
+                    <div class="col"></div>
+                </div>
+                <div class="row">
+                    <div class="col">Open</div>
+                    <div class="col-auto text-right">@Line.z_UOPN_16<span class="small">@Line.z_UOM_87</span> </div>
+                </div>
+                <div class="row">
+                    <div class="col">@Line.z_DSC1_25</div>
+                </div>
+            </div>
+            <div class="row m-2 justify-content-between">
+                <div class="col-6">
+                    <button id="ok" type="button" class="btn btn-success btn-sm w-100" @onclick="@QtyOK">
+                        <i class="fas fa-check"></i> OK
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button id="cancel" type="button" class="btn btn-warning btn-sm w-100" @onclick="@QtyCancel">
+                        <i class="fa fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </ChildContent>
+    </DxPopup>
+}
 
 @code {
     [Parameter]
-    public Tuple<int, string> Number { get; set; }
+    public OrderDef OrderDef { get; set; }
+
+    decimal LineNumber { get; set; }
+    string ReceiptQty { get; set; }
+    bool inputRendered = false;
+    bool confirmPopup = false;
+    bool ConfirmPopup
+    {
+        get => confirmPopup;
+        set
+        {
+            confirmPopup = value;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+    bool qtyPopup = false;
+    bool QtyPopup
+    {
+        get => qtyPopup;
+        set
+        {
+            qtyPopup = value;
+            if (qtyPopup)
+            {
+                ReceiptQty = (Line.Adjustment ?? Line.z_UOPN_16).ToString();
+            }
+            else
+            {
+                Js.ClearNumEdit("qtyInput");
+                inputRendered = false;
+            }
+            InvokeAsync(StateHasChanged);
+        }
+    }
 
     IEnumerable<W4312F.Row> Lines => POState
-        .OpenRequest
-        .fs_P4312_W4312F
-        .data
-        .gridData
-        .rowset
-        .Where(r => r.z_DOCO_10 == Number.Item1 && r.z_DCTO_11.CompareTo(Number.Item2) == 0);
+        .OpenLines
+        .Where(r => r.z_DOCO_10 == OrderDef.Number && r.z_DCTO_11.CompareTo(OrderDef.Type) == 0);
+    W4312F.Row Line => Lines.Where(r => r.z_LNID_43 == LineNumber).First();
+    int LineCount => Lines.Where(r => r.Adjustment != null && r.Adjustment > 0).Count();
+
+    void ToggleReceipt()
+    {
+        if (OrderDef.Status == null)
+        {
+            OrderDef.Status = ProcessSteps.PENDING;
+        }
+        else
+        {
+            OrderDef.Status = null;
+        }
+        Mediator.Send(new POState.UpdateStatusAction { Order = OrderDef });
+        ConfirmPopup = false;
+    }
+    void QtyCancel()
+    {
+        Mediator.Send(new POState.UpdateAdjustmentAction { Line = Line });
+        QtyPopup = false;
+    }
+    void QtyOK()
+    {
+        var a = decimal.Parse(ReceiptQty, System.Globalization.NumberStyles.AllowDecimalPoint);
+        if (a > 0)
+        {
+            Mediator.Send(new POState.UpdateAdjustmentAction { Line = Line, Adjustment = a });
+        }
+        else
+        {
+            Mediator.Send(new POState.UpdateAdjustmentAction { Line = Line });
+        }
+        QtyPopup = false;
+    }
+    void Detail(decimal line)
+    {
+        LineNumber = line;
+        QtyPopup = true;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+
+        if (QtyPopup && !inputRendered)
+        {
+            Js.InitNumEdit("qtyInput", "qty", "ok", "cancel", 5, 1);
+            inputRendered = true;
+        }
+    }
 }

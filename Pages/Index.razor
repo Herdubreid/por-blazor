@@ -1,30 +1,30 @@
 ﻿@page "/"
 @inherits StateComponent
 
-<div class="row justify-content-center">
-    @if (POState.OpenRequest == null)
-    {
+@if (POState.Orders.Any())
+{
+    <div class="card-columns">
+        @foreach (var o in Orders)
+        {
+            <Order OrderDef="@o"></Order>
+        }
+    </div>
+}
+else
+{
+    <div class="row justify-content-center">
         <em>Log in to fetch open orders!</em>
-    }
-    else
-    {
-        <div class="card-columns">
-            @foreach (var o in Orders)
-            {
-                <Order Number="@o"></Order>
-            }
-        </div>
-    }
-</div>
+    </div>
+}
 
 @code {
-    IEnumerable<Tuple<int, string>> Orders => POState
-        .OpenRequest
-        .fs_P4312_W4312F
-        .data
-        .gridData
-        .rowset
-        .Select(r => new Tuple<int, string>(r.z_DOCO_10, r.z_DCTO_11))
-        .Distinct();
+    IEnumerable<OrderDef> Orders => POState
+        .Orders
+        .Where(o => AppState.ShowPending ? o.Status != null : o.Status == null)
+        .Where(o => o.Contains(AppState.Search));
 
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+    }
 }

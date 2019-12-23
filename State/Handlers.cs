@@ -1,52 +1,40 @@
-﻿using Blazor.Extensions.Storage.Interfaces;
-using BlazorState;
+﻿using BlazorState;
 using MediatR;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Celin.State
 {
-    public enum StorageKeys
-    {
-        OPEN
-    }
     public partial class AppState
     {
-        public class LoadOpenHandler : ActionHandler<LoadOpenAction>
+        public class TogglePendingHandler : ActionHandler<TogglePendingAction>
         {
-            IMediator Mediator { get; }
-            ILocalStorage Local { get; }
-            public override async Task<Unit> Handle(LoadOpenAction aAction, CancellationToken aCancellationToken)
+            AppState State => Store.GetState<AppState>();
+            public override Task<Unit> Handle(TogglePendingAction aAction, CancellationToken aCancellationToken)
             {
-                await Mediator.Send(new PO.POState.LoadAction
-                {
-                    Open = await Local.GetItem<W4312F.Response>(StorageKeys.OPEN.ToString())
-                });
+                State.ShowPending = !State.ShowPending;
 
-                return Unit.Value;
+                EventHandler handler = State.Changed;
+                handler?.Invoke(State, null);
+
+                return Unit.Task;
             }
-            public LoadOpenHandler(IStore store, IMediator mediator, ILocalStorage local) : base(store)
-            {
-                Mediator = mediator;
-                Local = local;
-            }
+            public TogglePendingHandler(IStore store) : base(store) { }
         }
-        public class SaveOpenHandler : ActionHandler<SaveOpenAction>
+        public class SearchHandler : ActionHandler<SearchAction>
         {
-            ILocalStorage Local { get; }
-            public override async Task<Unit> Handle(SaveOpenAction aAction, CancellationToken aCancellationToken)
+            AppState State => Store.GetState<AppState>();
+            public override Task<Unit> Handle(SearchAction aAction, CancellationToken aCancellationToken)
             {
-                await Local.SetItem(StorageKeys.OPEN.ToString(), aAction.Open);
+                State.Search = aAction.Search.Trim();
 
-                return Unit.Value;
+                EventHandler handler = State.Changed;
+                handler?.Invoke(State, null);
+
+                return Unit.Task;
             }
-            public SaveOpenHandler(IStore store, ILocalStorage local) : base(store)
-            {
-                Local = local;
-            }
+            public SearchHandler(IStore store) : base(store) { }
         }
         public class AuthenticateHander : ActionHandler<AuthenticateAction>
         {

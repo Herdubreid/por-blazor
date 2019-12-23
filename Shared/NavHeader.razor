@@ -1,59 +1,58 @@
 ﻿@inherits StateComponent
+@inject IToastService ToastService
 @inject AIS.Server E1
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <a class="navbar-brand" href="#">PO RECEIVER</a>
-    <div class="col text-white">
-        @if (Auth)
-        {
-            @AppState.AuthResponse.username
-        }
-        else
-        {
-            <em>Logged out</em>
-        }
-    </div>
+<nav class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+    <form class="form-inline">
+        <input class="form-control mr-sm-2" type="search" placeholder="Search" @bind-value:event="oninput" @bind-value="@Search">
+    </form>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <div class="col"></div>
-        <button type="button" class="btn btn-secondary ml-1" @onclick="@ToggleLogin">
-            <i class="@(Auth ? "fas fa-sign-out-alt" : "fas fa-sign-in-alt")"></i>
+        <button type="button" class="btn btn-secondary btn-sm @(AppState.ShowPending ? "active" : "")" autocomplete="off"
+                @onclick="@(() => Mediator.Send(new AppState.TogglePendingAction()))">
+            <i class="fas fa-filter"></i> @(AppState.ShowPending ? $"Open ({OpenCount})" : $"Pending ({PendingCount})")
+        </button>
+        <button type="button" disabled="@(!Auth || Syncing)" class="btn btn-secondary btn-sm ml-1" @onclick="@Sync">
+            <i class="@(Syncing ? "fas fa-spinner fa-spin" : "fas fa-sync")"></i> Refresh
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm ml-1" @onclick="@ToggleLogin">
+            <i class="@(Auth ? "fas fa-sign-out-alt" : "fas fa-sign-in-alt")"></i> @(Auth ? AppState.AuthResponse.username : "Login")
         </button>
     </div>
 </nav>
 @if (LoginPopup)
 {
-    <DxPopup>
+    <DxPopup CssClass="w-350px">
+        <HeaderTemplate>
+            <div class="row justify-content-center">
+                <h5 class="col-auto">Login</h5>
+            </div>
+        </HeaderTemplate>
         <ChildContent>
             <div class="ml-4 mr-4">
                 <form spellcheck="false" @onsubmit="@Authenticate">
-                    <div class="row justify-content-center">
-                        <h4>Login</h4>
+                    <div class="row m-2">
+                        <input type="text" disabled="@Busy" required class="form-control" placeholder="User" @bind="@User" />
                     </div>
-                    <div class="form-group-row">
-                        <label for="user">User</label>
-                        <input type="text" disabled="@Busy" id="user" required class="form-control" @bind="@User" />
-                    </div>
-                    <div class="form-group-row">
-                        <label for="password">Password</label>
-                        <input type="password" disabled="@Busy" id="password" required class="form-control" @bind="@Password" />
+                    <div class="row m-2">
+                        <input type="password" disabled="@Busy" required class="form-control" placeholder="Password" @bind="@Password" />
                     </div>
                     <div class="row">
                         <label class="col text-danger">@Error</label>
                     </div>
                     <div class="row m-2">
-                        <div class="col">
-                            <button type="submit" class="btn btn-primary">
+                        <div class="col-6">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
                                 <i class="@(Busy ? "fas fa-spinner fa-spin" : "fas fa-sign-in-alt")"></i>
                                 @(Busy ? " Cancel" : " Login")
                             </button>
                         </div>
-                        <div class="col"></div>
-                        <div class="col">
-                            <button type="button" disabled="@Busy" class="btn btn-warning" @onclick="@(() => LoginPopup = false)">
-                                <i class="fa fa-times"></i>
+                        <div class="col-6">
+                            <button type="button" disabled="@Busy" class="btn btn-warning btn-sm w-100" @onclick="@(() => LoginPopup = false)">
+                                <i class="fa fa-times"> Cancel</i>
                             </button>
                         </div>
                     </div>
@@ -65,7 +64,10 @@
 
 @code {
     bool Busy { get; set; }
+    bool Syncing { get; set; }
     bool Auth => AppState.AuthResponse != null;
+    int OpenCount => POState.Orders.Where(o => o.Status == null).Count();
+    int PendingCount => POState.Orders.Where(o => o.Status != null).Count();
     bool loginPopup = false;
     bool LoginPopup
     {
@@ -78,9 +80,44 @@
             InvokeAsync(StateHasChanged);
         }
     }
+    Debouncer debouncer = new Debouncer(1000);
+    string search = string.Empty;
+    string Search
+    {
+        get => search;
+        set
+        {
+            search = value;
+            debouncer.Debounce((() => Mediator.Send(new AppState.SearchAction { Search = search })));
+        }
+    }
     string User { get; set; }
     string Password { get; set; }
     string Error { get; set; }
+    async Task Sync()
+    {
+        Syncing = true;
+        var pending = POState.Orders.Where(o => o.Status != null);
+        if (pending.Count() > 0)
+        {
+            await Mediator.Send(new POState.ReceiptOrderAction { Orders = pending });
+        }
+        if (POState.ErrorMessage == null)
+        {
+            if (PendingCount > 0)
+            {
+                ToastService.ShowWarning("One or more receipts failed", "Receipt Failure!");
+            }
+            else
+            {
+                await Mediator.Send(new POState.OpenRequestAction());
+            }
+        } else
+        {
+            ToastService.ShowError(POState.ErrorMessage, "Receipt Error!");
+        }
+        Syncing = false;
+    }
     async Task ToggleLogin()
     {
         if (Auth)
@@ -105,10 +142,9 @@
             Cancel = new System.Threading.CancellationTokenSource();
             await E1.AuthenticateAsync(Cancel);
             await Mediator.Send(new AppState.AuthenticateAction { AuthResponse = E1.AuthResponse });
-            if (POState.OpenRequest == null)
+            if (!POState.Orders.Any())
             {
                 await Mediator.Send(new POState.OpenRequestAction());
-                await Mediator.Send(new AppState.SaveOpenAction { Open = POState.OpenRequest });
             }
             LoginPopup = false;
         }

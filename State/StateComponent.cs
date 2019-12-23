@@ -14,10 +14,12 @@ namespace Celin.PO
         protected void Update(object sender, EventArgs args) => InvokeAsync(StateHasChanged);
         protected override void OnInitialized()
         {
+            AppState.Changed += Update;
             POState.Changed += Update;
         }
         public new void Dispose()
         {
+            AppState.Changed -= Update;
             POState.Changed -= Update;
             base.Dispose();
         }

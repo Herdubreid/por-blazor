@@ -4,25 +4,31 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <RazorLangVersion>3.0</RazorLangVersion>
     <RootNamespace>Celin</RootNamespace>
+    <ServiceWorkerForce>true</ServiceWorkerForce>
+    <ManifestShortName>POR</ManifestShortName>
+    <ManifestLongName>Purchase Order Receiver</ManifestLongName>
+    <ServiceWorkerCacheVersion>8</ServiceWorkerCacheVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Blazor-State" Version="2.0.6" />
+    <PackageReference Include="Blazor.Extensions.Logging" Version="1.0.0" />
     <PackageReference Include="Blazor.Extensions.Storage" Version="1.1.0-preview3" />
+    <PackageReference Include="Blazored.Toast" Version="2.0.8" />
+    <PackageReference Include="BlazorPWA.MSBuild" Version="1.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="DevExpress.Blazor" Version="19.1.10" />
     <PackageReference Include="Microsoft.AspNetCore.Blazor" Version="3.1.0-preview4.19579.2" />
     <PackageReference Include="Microsoft.AspNetCore.Blazor.Build" Version="3.1.0-preview4.19579.2" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.Blazor.HttpClient" Version="3.1.0-preview4.19579.2" />
     <PackageReference Include="Microsoft.AspNetCore.Blazor.DevServer" Version="3.1.0-preview4.19579.2" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="3.1.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Celin.AIS">
-      <HintPath>..\Celin.AIS\bin\Release\netstandard2.0\Celin.AIS.dll</HintPath>
-    </Reference>
-    <Reference Include="Celin.PO">
-      <HintPath>..\Celin.PO\bin\Release\netstandard2.0\Celin.PO.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\Celin.PO\Celin.PO.csproj" />
   </ItemGroup>
 
 </Project>

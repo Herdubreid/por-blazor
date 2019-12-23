@@ -1,10 +1,14 @@
 using Blazor.Extensions.Storage;
+using Blazored.Toast;
 using BlazorState;
 using Celin.PO;
 using Celin.Services;
 using Celin.State;
 using Microsoft.AspNetCore.Components.Builder;
 using Microsoft.Extensions.DependencyInjection;
+#if DEBUG
+using Microsoft.Extensions.Logging;
+#endif
 using System.Reflection;
 
 namespace Celin
@@ -13,19 +17,32 @@ namespace Celin
     {
         public void ConfigureServices(IServiceCollection services)
         {
+#if DEBUG
+            services.AddLogging(logger =>
+            {
+                logger
+                    .SetMinimumLevel(LogLevel.Critical)
+                    .AddConsole();
+            });
+#endif
             services.AddStorage();
+            services.AddBlazoredToast();
             services.AddBlazorState(
                 (options) =>
                 {
+                    options.UseCloneStateBehavior = false;
+#if DEBUG
                     options.UseReduxDevToolsBehavior = true;
+#endif
                     options.Assemblies = new Assembly[]
                     {
                         typeof(Startup).GetTypeInfo().Assembly,
                         typeof(POState).GetTypeInfo().Assembly
                     };
                 });
-            services.AddScoped<POState>();
-            services.AddScoped<AppState>();
+            services.AddSingleton<POState>();
+            services.AddSingleton<AppState>();
+            services.AddSingleton<JsService>();
             services.AddSingleton<AIS.Server, E1Service>();
         }
 

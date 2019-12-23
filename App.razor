@@ -1,6 +1,4 @@
 ﻿@inject MediatR.IMediator Mediator
-@inject BlazorState.Pipeline.ReduxDevTools.ReduxDevToolsInterop ReduxDevToolsInterop
-@inject BlazorState.Features.JavaScriptInterop.JsonRequestHandler JsonRequestHandler
 
 <Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
@@ -14,15 +12,21 @@
 </Router>
 
 @code {
+#if DEBUG
+@inject BlazorState.Features.JavaScriptInterop.JsonRequestHandler JsonRequestHandler
+@inject BlazorState.Pipeline.ReduxDevTools.ReduxDevToolsInterop ReduxDevToolsInterop
+#endif
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
 
         if (firstRender)
         {
+#if DEBUG
             await ReduxDevToolsInterop.InitAsync();
             await JsonRequestHandler.InitAsync();
-            await Mediator.Send(new AppState.LoadOpenAction());
+#endif
+            await Mediator.Send(new POState.LoadAction());
         }
     }
 }
